@@ -356,6 +356,49 @@ createChannel()
         --tls \
         --cafile "${PWD}/peers/peer0/tls/ca.crt"
 
+    peer lifecycle chaincode package bisce.tar.gz \
+        --path $PWD/chaincode \
+        --lang golang \
+        --label bisce_1.0
+    peer lifecycle chaincode install /etc/hyperledger/bisce.tar.gz
+    export CC_PACKAGE_ID=`peer lifecycle chaincode queryinstalled --output json | jq '.installed_chaincodes[0].package_id'`
+    peer lifecycle chaincode approveformyorg \
+        -o localhost:7050 \
+        --channelID "${CHANNEL}" \
+        --name bisce \
+        --version 1.0 \
+        --package-id "${CC_PACKAGE_ID//\"/}" \
+        --sequence 1 \
+        --tls \
+        --cafile /etc/hyperledger/peers/peer0/tls/ca.crt
+    peer lifecycle chaincode checkcommitreadiness \
+        --channelID "${CHANNEL}" \
+        --name bisce \
+        --version 1.0 \
+        --sequence 1 \
+        --tls \
+        --cafile /etc/hyperledger/peers/peer0/tls/ca.crt \
+        --output json
+    peer lifecycle chaincode commit \
+        -o localhost:7050 \
+        --channelID "${CHANNEL}" \
+        --name bisce \
+        --version 1.0 \
+        --sequence 1 \
+        --tls \
+        --cafile /etc/hyperledger/peers/peer0/tls/ca.crt \
+        --peerAddresses localhost:7051 \
+        --tlsRootCertFiles /etc/hyperledger/peers/peer0/tls/ca.crt
+    peer chaincode invoke \
+        -o localhost:7050 \
+        --tls \
+        --cafile /etc/hyperledger/peers/peer0/tls/ca.crt \
+        --peerAddresses localhost:7051 \
+        --tlsRootCertFiles /etc/hyperledger/peers/peer0/tls/ca.crt \
+        -C "${CHANNEL}" \
+        -n bisce \
+        -c '{"function":"Initialize","Args":["Carbon Token", "CT", "2"]}'
+
     envsubst '${ORG} ${CHANNEL}' \
         < template/bisce-network-ca.template.json \
         > bisce-network-ca.json
@@ -377,6 +420,7 @@ generateRequest()
 
 joinChannel()
 {
+    echo "Channel ${CHANNEL} joining starts."
     osnadmin channel join \
         --channelID ${CHANNEL} \
         --config-block "channels/${CHANNEL}/${CHANNEL}.block" \
@@ -385,6 +429,23 @@ joinChannel()
         --client-cert orderers/orderer0/tls/server.crt \
         --client-key orderers/orderer0/tls/server.key
     peer channel join -b "channels/${CHANNEL}/${CHANNEL}.block"
+
+    peer lifecycle chaincode package bisce.tar.gz \
+        --path $PWD/chaincode \
+        --lang golang \
+        --label bisce_1.0
+    peer lifecycle chaincode install /etc/hyperledger/bisce.tar.gz
+    export CC_PACKAGE_ID=`peer lifecycle chaincode queryinstalled --output json | jq '.installed_chaincodes[0].package_id'`
+        peer lifecycle chaincode approveformyorg \
+        -o localhost:7050 \
+        --channelID "${CHANNEL}" \
+        --name bisce \
+        --version 1.0 \
+        --package-id "${CC_PACKAGE_ID//\"/}" \
+        --sequence 1 \
+        --tls \
+        --cafile /etc/hyperledger/peers/peer0/tls/ca.crt
+    echo "Channel ${CHANNEL} joining completed."
 }
 
 listChannel()
