@@ -106,17 +106,14 @@ loooooooooooooooooo    ...    'oooooooooooooooooo;
     curl -sSLO https://raw.githubusercontent.com/hyperledger/fabric/main/scripts/install-fabric.sh && chmod +x install-fabric.sh
     ./install-fabric.sh --fabric-version 3.0.0 binary
     sudo cp bin/* /usr/local/bin/
-    rm -f install-fabric.sh
-    rm -rf builders
-    rm -rf bin
+    rm -f install-fabric.sh builders bin
 
     echo "Initiation starts."
 
     docker volume create orderer0
     docker volume create peer0
 
-    mkdir config 2>/dev/null
-    mkdir fabric-ca 2>/dev/null
+    mkdir config fabric-ca 2>/dev/null
 
     envsubst '${ORG} ${HOST} ${PWD}' < template/configtx.template.yaml > config/configtx.yaml
     envsubst '${ORG} ${HOST}' < template/fabric-ca-server-config.template.yaml > fabric-ca/fabric-ca-server-config.yaml
@@ -149,23 +146,21 @@ setup()
             -u https://caadmin:caadminpw@localhost:7054 \
             --caname "ca-${ORG}" --tls.certfiles fabric-ca/ca-cert.pem
         echo "NodeOUs:
-        Enable: true
-        ClientOUIdentifier:
-            Certificate: cacerts/localhost-7054-ca-${ORG}.pem
-            OrganizationalUnitIdentifier: client
-        PeerOUIdentifier:
-            Certificate: cacerts/localhost-7054-ca-${ORG}.pem
-            OrganizationalUnitIdentifier: peer
-        AdminOUIdentifier:
-            Certificate: cacerts/localhost-7054-ca-${ORG}.pem
-            OrganizationalUnitIdentifier: admin
-        OrdererOUIdentifier:
-            Certificate: cacerts/localhost-7054-ca-${ORG}.pem
-            OrganizationalUnitIdentifier: orderer" > msp/config.yaml
+    Enable: true
+    ClientOUIdentifier:
+        Certificate: cacerts/localhost-7054-ca-${ORG}.pem
+        OrganizationalUnitIdentifier: client
+    PeerOUIdentifier:
+        Certificate: cacerts/localhost-7054-ca-${ORG}.pem
+        OrganizationalUnitIdentifier: peer
+    AdminOUIdentifier:
+        Certificate: cacerts/localhost-7054-ca-${ORG}.pem
+        OrganizationalUnitIdentifier: admin
+    OrdererOUIdentifier:
+        Certificate: cacerts/localhost-7054-ca-${ORG}.pem
+        OrganizationalUnitIdentifier: orderer" > msp/config.yaml
 
-        mkdir msp/tlscacerts 2>/dev/null
-        mkdir tlsca 2>/dev/null
-        mkdir ca 2>/dev/null
+        mkdir msp/tlscacerts tlsca ca 2>/dev/null
 
         cp fabric-ca/ca-cert.pem msp/tlscacerts/ca.crt
         cp fabric-ca/ca-cert.pem tlsca/tlsca-cert.pem
@@ -345,8 +340,7 @@ createChannel()
         fi
     fi
     rm config_update_in_envelope.pb
-    mkdir -p channels/${CHANNEL}/orgRequests
-    mkdir channels/${CHANNEL}/proposals
+    mkdir -p channels/${CHANNEL}/orgRequests channels/${CHANNEL}/proposals
     peer channel fetch 0 \
         "channels/${CHANNEL}/${CHANNEL}.block" \
         -o "${HOST}:7050" \
@@ -362,8 +356,8 @@ generateRequest()
     echo "Request for joining the channel ${CHANNEL} generation starts."
     mkdir channels/${CHANNEL}/orgRequests/${ORG}
     touch channels/${CHANNEL}/orgRequests/${ORG}/.env
-    echo "HOST=${HOST}" > channels/${CHANNEL}/orgRequests/${ORG}/.env
-    echo "CERT=$(base64 orderers/orderer0/tls/server.crt | tr -d '\n')" >> channels/${CHANNEL}/orgRequests/${ORG}/.env
+    echo -e "HOST=${HOST}\nCERT=$(base64 orderers/orderer0/tls/server.crt | tr -d '\n')" \
+        > channels/${CHANNEL}/orgRequests/${ORG}/.env
     configtxgen -printOrg ${ORG} > ${ORG}.json
     mv ${ORG}.json channels/${CHANNEL}/orgRequests/${ORG}/${ORG}.json
     echo "Request for joining the channel ${CHANNEL} generation completed."
@@ -417,26 +411,51 @@ generateProposal()
         > config.json
     rm config_block.json
     jq -s \
-        ".[0] * {\"channel_group\":{\"groups\":{\"Application\":{\"groups\": {\"$1\":.[1]}}}}}" \
+        ".[0] * {
+            \"channel_group\": {
+                \"groups\": {
+                    \"Application\": {
+                        \"groups\": {
+                            \"$1\": .[1]
+                        }
+                    }
+                }
+            }
+        } |
+        del(.channel_group.groups.Application.groups.$1.values.Endpoints) |
+        .channel_group.groups.Application.groups.$1.values += {
+            \"AnchorPeers\": {
+                \"mod_policy\": \"Admins\",
+                \"value\": {
+                    \"anchor_peers\": [{
+                        \"host\": \"${HOST}\",
+                        \"port\": 7051
+                    }]
+                },
+                \"version\": \"0\"
+            }
+        }" \
         config.json "channels/${CHANNEL}/orgRequests/$1/$1.json" \
-        > tmp1.json
-    jq "del(.channel_group.groups.Application.groups.$1.values.Endpoints)" \
-        tmp1.json \
-        > tmp2.json
-    rm tmp1.json
-    jq ".channel_group.groups.Application.groups.$1.values += {\"AnchorPeers\":{\"mod_policy\": \"Admins\",\"value\":{\"anchor_peers\": [{\"host\": \"${HOST}\",\"port\": 7051}]},\"version\": \"0\"}}" \
-        tmp2.json \
-        > tmp3.json
-    rm tmp2.json
-    jq -s \
-        ".[0] * {\"channel_group\":{\"groups\":{\"Orderer\":{\"groups\": {\"$1\":.[1]}}}}}" \
-        tmp3.json "channels/${CHANNEL}/orgRequests/$1/$1.json" \
-        > tmp4.json
-    rm tmp3.json
-    jq ".channel_group.groups.Orderer.values.ConsensusType.value.metadata.consenters += [{\"client_tls_cert\": \"${CERT}\", \"host\": \"${HOST}\", \"port\": 7050, \"server_tls_cert\": \"${CERT}\"}]" \
-        tmp4.json \
+        | jq -s \
+        ".[0] * {
+            \"channel_group\": {
+                \"groups\": {
+                    \"Orderer\": {
+                        \"groups\": {
+                            \"$1\": .[1]
+                        }
+                    }
+                }
+            }
+        } |
+        .channel_group.groups.Orderer.values.ConsensusType.value.metadata.consenters += [{
+            \"client_tls_cert\": \"${CERT}\",
+            \"host\": \"${HOST}\",
+            \"port\": 7050,
+            \"server_tls_cert\": \"${CERT}\"
+        }]" - \
+        "channels/${CHANNEL}/orgRequests/$1/$1.json" \
         > modified_config.json
-    rm tmp4.json
     configtxlator proto_encode \
         --input config.json \
         --type common.Config \
@@ -452,8 +471,7 @@ generateProposal()
         --original config.pb \
         --updated modified_config.pb \
         --output update.pb
-    rm config.pb
-    rm modified_config.pb 
+    rm config.pb modified_config.pb 
     configtxlator proto_decode \
         --input update.pb \
         --type common.ConfigUpdate \
@@ -466,8 +484,7 @@ generateProposal()
         --input update_in_envelope.json \
         --type common.Envelope \
         --output channels/${CHANNEL}/proposals/$1.pb
-    rm update_in_envelope.json
-    rm -rf channels/${CHANNEL}/orgRequests/$1
+    rm -rf update_in_envelope.json channels/${CHANNEL}/orgRequests/$1
     echo "Proposal generation for $1 completed."
 }
 
