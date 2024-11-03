@@ -276,6 +276,7 @@ reset()
 uninit()
 {
     echo "Uninit starts"
+    sudo umount channels/*
     sudo rm -rf \
         fabric-ca/ \
         peercfg/ \
