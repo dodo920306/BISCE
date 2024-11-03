@@ -358,15 +358,55 @@ createChannel()
 
 generateRequest()
 {
+    echo "Request for joining the channel ${CHANNEL} generation starts."
+    mkdir channels/${CHANNEL}/orgRequests/${ORG}
+    touch channels/${CHANNEL}/orgRequests/${ORG}/.env
+    echo "HOST=${HOST}" > channels/${CHANNEL}/orgRequests/${ORG}/.env
+    echo "CERT=$(base64 orderers/orderer0/tls/server.crt | tr -d '\n')" >> channels/${CHANNEL}/orgRequests/${ORG}/.env
+    configtxgen -printOrg ${ORG} > ${ORG}.json
+    mv ${ORG}.json channels/${CHANNEL}/orgRequests/${ORG}/${ORG}.json
+    echo "Request for joining the channel ${CHANNEL} generation completed."
+}
+
+joinChannel()
+{
+    osnadmin channel join \
+        --channelID ${CHANNEL} \
+        --config-block "channels/${CHANNEL}/${CHANNEL}.block" \
+        -o "${HOST}:7053" \
+        --ca-file tlsca/tlsca-cert.pem \
+        --client-cert orderers/orderer0/tls/server.crt \
+        --client-key orderers/orderer0/tls/server.key
+    peer channel join -b "channels/${CHANNEL}/${CHANNEL}.block"
+}
+
+listChannel()
+{
+    osnadmin channel list \
+        -o "${HOST}:7053" \
+        --ca-file tlsca/tlsca-cert.pem \
+        --client-cert orderers/orderer0/tls/server.crt \
+        --client-key orderers/orderer0/tls/server.key
+    osnadmin channel list \
+        --channelID ${CHANNEL} \
+        -o "${HOST}:7053" \
+        --ca-file tlsca/tlsca-cert.pem \
+        --client-cert orderers/orderer0/tls/server.crt \
+        --client-key orderers/orderer0/tls/server.key
+    peer channel list
+}
+
+generateProposal()
+{
+    echo "Proposal generation for $1 starts."
     peer channel fetch config config_block.pb \
         -o localhost:7050 \
         -c ${CHANNEL} \
         --tls \
         --cafile "${PWD}/orderers/orderer0/tls/ca.crt"
     set -a
-    source channels/${CHANNEL}/orgRequests/$1/.env
+    . channels/${CHANNEL}/orgRequests/$1/.env
     set +a
-    echo "Proposal generation for $1 starts."
     configtxlator proto_decode \
         --input config_block.pb \
         --type common.Block \
@@ -428,34 +468,6 @@ generateRequest()
     rm update_in_envelope.json
     rm -rf channels/${CHANNEL}/orgRequests/$1
     echo "Proposal generation for $1 completed."
-}
-
-joinChannel()
-{
-    osnadmin channel join \
-        --channelID ${CHANNEL} \
-        --config-block "channels/${CHANNEL}/${CHANNEL}.block" \
-        -o "${HOST}:7053" \
-        --ca-file tlsca/tlsca-cert.pem \
-        --client-cert orderers/orderer0/tls/server.crt \
-        --client-key orderers/orderer0/tls/server.key
-    peer channel join -b "channels/${CHANNEL}/${CHANNEL}.block"
-}
-
-listChannel()
-{
-    osnadmin channel list \
-        -o "${HOST}:7053" \
-        --ca-file tlsca/tlsca-cert.pem \
-        --client-cert orderers/orderer0/tls/server.crt \
-        --client-key orderers/orderer0/tls/server.key
-    osnadmin channel list \
-        --channelID ${CHANNEL} \
-        -o "${HOST}:7053" \
-        --ca-file tlsca/tlsca-cert.pem \
-        --client-cert orderers/orderer0/tls/server.crt \
-        --client-key orderers/orderer0/tls/server.key
-    peer channel list
 }
 
 signProposal()
