@@ -356,7 +356,7 @@ createChannel()
     echo "Creation of the channel completed."
 }
 
-applyForJoiningChannel()
+generateRequest()
 {
     peer channel fetch config config_block.pb \
         -o localhost:7050 \
@@ -499,8 +499,8 @@ case "$MODE" in
     createChannel )
         createChannel
         ;;
-    applyForJoiningChannel )
-        applyForJoiningChannel
+    generateRequest )
+        generateRequest
         ;;
     joinChannel )
         joinChannel
