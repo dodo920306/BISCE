@@ -436,7 +436,7 @@ joinChannel()
         --label bisce_1.0
     peer lifecycle chaincode install /etc/hyperledger/bisce.tar.gz
     export CC_PACKAGE_ID=`peer lifecycle chaincode queryinstalled --output json | jq '.installed_chaincodes[0].package_id'`
-        peer lifecycle chaincode approveformyorg \
+    peer lifecycle chaincode approveformyorg \
         -o localhost:7050 \
         --channelID "${CHANNEL}" \
         --name bisce \
