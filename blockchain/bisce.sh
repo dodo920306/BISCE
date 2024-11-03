@@ -2,7 +2,7 @@
 
 exportEnvVar() {
     set -a
-    . .env
+    . .env/.env
     HOST=`hostname`
     PWD=`pwd`
     FABRIC_CFG_PATH="${PWD}/config"
@@ -115,9 +115,15 @@ loooooooooooooooooo    ...    'oooooooooooooooooo;
 
     mkdir config fabric-ca 2>/dev/null
 
-    envsubst '${ORG} ${HOST} ${PWD}' < template/configtx.template.yaml > config/configtx.yaml
-    envsubst '${ORG} ${HOST}' < template/fabric-ca-server-config.template.yaml > fabric-ca/fabric-ca-server-config.yaml
-    envsubst '${ORG}' < template/fabric-ca-client-config.template.yaml > fabric-ca-client-config.yaml
+    envsubst '${ORG} ${HOST} ${PWD}' \
+        < template/configtx.template.yaml \
+        > config/configtx.yaml
+    envsubst '${ORG} ${HOST}' \
+        < template/fabric-ca-server-config.template.yaml \
+        > fabric-ca/fabric-ca-server-config.yaml
+    envsubst '${ORG}' \
+        < template/fabric-ca-client-config.template.yaml \
+        > fabric-ca-client-config.yaml
 
     echo "Initiation completed."
 }
@@ -126,7 +132,7 @@ setup()
 {
     echo "Setup starts."
 
-    docker compose -f docker-compose-ca.yaml up -d
+    docker compose -f docker-compose/docker-compose-ca.yaml up -d
     sleep 5
     HTTP_STATUS=$(curl -X GET -s -o /dev/null -w "%{http_code}" http://localhost:17054/healthz)
     if [ "$HTTP_STATUS" -ne 200 ]; then
@@ -166,7 +172,7 @@ setup()
         cp fabric-ca/ca-cert.pem tlsca/tlsca-cert.pem
         cp fabric-ca/ca-cert.pem ca/ca-cert.pem
     else
-        echo "Fabric CA Client user exists. omit"
+        echo "Fabric CA Client user exists. Skipping."
     fi
 
     echo "create Order0 user"
@@ -201,7 +207,7 @@ setup()
         mkdir orderers/orderer0/msp/tlscacerts 2>/dev/null
         cp "orderers/orderer0/tls/tlscacerts/tls-localhost-7054-ca-${ORG}.pem" orderers/orderer0/msp/tlscacerts/tlsca-cert.pem
     else
-        echo "Order0 user exists. omit"
+        echo "Order0 user exists. Skipping."
     fi
 
     echo "create Peer0 user"
@@ -233,7 +239,7 @@ setup()
         cp peers/peer0/tls/signcerts/cert.pem peers/peer0/tls/server.crt
         cp peers/peer0/tls/keystore/* peers/peer0/tls/server.key
     else
-        echo "Peer0 user exists. omit"
+        echo "Peer0 user exists. Skipping."
     fi
 
     echo "create Bisce user"
@@ -252,10 +258,10 @@ setup()
 
         cp msp/config.yaml users/bisce/msp/config.yaml
     else
-        echo "Bisce user exists. omit"
+        echo "Bisce user exists. Skipping."
     fi
 
-    docker compose -f docker-compose.yaml up -d
+    docker compose -f docker-compose/docker-compose.yaml up -d
 
     echo "Setup completed."
 }
@@ -263,8 +269,9 @@ setup()
 reset()
 {
     echo "Reset starts."
-    docker compose -f docker-compose-ca.yaml down
-    docker compose -f docker-compose.yaml down
+    docker compose -f docker-compose/docker-compose-explorer.yaml \
+                   -f docker-compose/docker-compose-ca.yaml \
+                   -f docker-compose/docker-compose.yaml down
     echo "Reset completed."
 }
 
@@ -286,11 +293,11 @@ uninit()
         peers/ \
         fabric/ \
         channels/
-    docker compose -f docker-compose-ca.yaml down
-    docker compose -f docker-compose.yaml down
-    docker volume rm peer0
-    docker volume rm orderer0
-    sudo rm -f fabric-ca-client-config.yaml install-fabric.sh *.block *.pb *.json connection* *.tar.gz fetchBlock/*.json
+    docker compose -f docker-compose/docker-compose-explorer.yaml \
+                   -f docker-compose/docker-compose-ca.yaml \
+                   -f docker-compose/docker-compose.yaml down -v
+    docker volume rm peer0 orderer0
+    sudo rm -f fabric-ca-client-config.yaml bisce-network-ca.json fetchBlock/*.json
     echo "Uninit completed"
 }
 
@@ -348,6 +355,11 @@ createChannel()
         -o "${HOST}:7050" \
         --tls \
         --cafile "${PWD}/peers/peer0/tls/ca.crt"
+
+    envsubst '${ORG} ${CHANNEL}' \
+        < template/bisce-network-ca.template.json \
+        > bisce-network-ca.json
+    docker compose -f docker-compose/docker-compose-explorer.yaml up -d
     echo "Creation of the channel completed."
 }
 
@@ -490,17 +502,29 @@ generateProposal()
 
 signProposal()
 {
-    peer channel signconfigtx -f "channels/${CHANNEL}/proposals/$1.pb"
+    echo "Proposal signing for $1 starts."
+    peer channel signconfigtx \
+        -f "channels/${CHANNEL}/proposals/$1.pb"
+    echo "Proposal signing for $1 completed."
 }
 
 commitProposal()
 {
+    echo "Proposal commitment for $1 starts."
     peer channel update \
         -f "channels/${CHANNEL}/proposals/$1.pb" \
         -c "${CHANNEL}" \
         -o "${HOST}:7050" \
         --tls \
         --cafile "${PWD}/peers/peer0/tls/ca.crt"
+    echo "Proposal commitment for $1 completed."
+}
+
+logs()
+{
+    docker compose -f docker-compose/docker-compose.yaml \
+                   -f docker-compose/docker-compose-ca.yaml \
+                   -f docker-compose/docker-compose-explorer.yaml logs $@ -f
 }
 
 if [[ $# -lt 1 ]] ; then
@@ -546,6 +570,9 @@ case "$MODE" in
         ;;
     commitProposal )
         commitProposal $@
+        ;;
+    logs )
+        logs $@
         ;;
     * )
         echo "Error: no such action" >&2

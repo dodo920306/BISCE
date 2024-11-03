@@ -1,0 +1,68 @@
+{
+	"name": "bisce-network",
+	"version": "1.0.0",
+	"client": {
+		"tlsEnable": true,
+		"adminCredential": {
+			"id": "exploreradmin",
+			"password": "exploreradminpw"
+		},
+		"caCredential": {
+			"id": "caadmin",
+			"password": "caadminpw"
+		},
+		"enableAuthentication": true,
+		"organization": "${ORG}MSP",
+		"connection": {
+			"timeout": {
+				"peer": {
+					"endorser": "300"
+				},
+				"orderer": "300"
+			}
+		}
+	},
+	"channels": {
+		"${CHANNEL}": {
+			"peers": {
+				"peer0": {}
+			},
+			"connection": {
+				"timeout": {
+					"peer": {
+						"endorser": "6000",
+						"eventHub": "6000",
+						"eventReg": "6000"
+					}
+				}
+			}
+		}
+	},
+	"organizations": {
+		"${ORG}MSP": {
+			"mspid": "${ORG}MSP",
+			"peers": ["peer0"],
+			"certificateAuthorities": ["ca"]
+		}
+	},
+	"peers": {
+		"peer0": {
+			"tlsCACerts": {
+				"path": "/tmp/crypto/peers/peer0/tls/ca.crt"
+			},
+			"url": "grpcs://localhost:7051"
+		}
+	},
+	"certificateAuthorities": {
+		"ca": {
+			"url": "https://localhost:7054",
+			"httpOptions": {
+				"verify": false
+			},
+			"tlsCACerts": {
+				"path": "/tmp/crypto/ca/ca-cert.pem"
+			},
+			"caName": "ca-${ORG}"
+		}
+	}
+}

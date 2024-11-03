@@ -13,10 +13,10 @@ services:
     container_name: orderer0
     image: hyperledger/fabric-orderer:latest
     env_file:
-      - .env.orderer
+      - ../.env/.env.orderer
     volumes:
-        - ./orderers/orderer0/msp:/var/hyperledger/orderer/msp
-        - ./orderers/orderer0/tls:/var/hyperledger/orderer/tls
+        - ../orderers/orderer0/msp:/var/hyperledger/orderer/msp
+        - ../orderers/orderer0/tls:/var/hyperledger/orderer/tls
         - orderer0:/var/hyperledger/production/orderer
     working_dir: /root
     command: orderer
@@ -36,7 +36,7 @@ services:
     container_name: couchdb0
     image: couchdb:3.3.2
     env_file:
-      - .env.couchdb
+      - ../.env/.env.couchdb
     # ports:
     #   - "5984:5984"
     expose:
@@ -51,9 +51,9 @@ services:
     labels:
       service: hyperledger-fabric
     env_file:
-      - .env.peer
+      - ../.env/.env.peer
     volumes:
-        - .:/etc/hyperledger
+        - ..:/etc/hyperledger
         - peer0:/var/hyperledger/production
         - /var/run/docker.sock:/host/var/run/docker.sock
     working_dir: /root

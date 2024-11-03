@@ -1,0 +1,9 @@
+{
+	"network-configs": {
+		"bisce-network": {
+			"name": "BISCE Network",
+			"profile": "./bisce-network-ca.json"
+		}
+	},
+	"license": "Apache-2.0"
+}

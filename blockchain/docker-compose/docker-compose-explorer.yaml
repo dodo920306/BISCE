@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# networks:
+#   bisce-network:
+#     external: true
+
+services:
+  explorerdb:
+    image: ghcr.io/hyperledger-labs/explorer-db:latest
+    container_name: explorerdb
+    env_file:
+      - ../.env/.env.explorerdb
+    healthcheck:
+      test: "pg_isready -h localhost -p 5432 -q -U postgres"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # networks:
+    #   - bisce-network
+    network_mode: "host"
+
+  explorer:
+    image: ghcr.io/hyperledger-labs/explorer:latest
+    container_name: explorer
+    env_file:
+      - ../.env/.env.explorer
+    volumes:
+      - ../config-ca.json:/opt/explorer/app/platform/fabric/config.json
+      - ../bisce-network-ca.json:/opt/explorer/app/platform/fabric/bisce-network-ca.json
+      - ../peers:/tmp/crypto/peers
+      - ../ca:/tmp/crypto/ca
+      - walletstore:/opt/explorer/wallet
+    # ports:
+    #   - 8080:8080
+    expose:
+        - 8080
+    depends_on:
+      explorerdb:
+        condition: service_healthy
+    # networks:
+    #   - bisce-network
+    network_mode: "host"
+
+volumes:
+  pgdata:
+  walletstore:

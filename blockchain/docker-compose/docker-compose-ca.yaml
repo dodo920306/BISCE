@@ -7,7 +7,7 @@ services:
     container_name: ca
     image: hyperledger/fabric-ca:latest
     env_file:
-      - ./.env.ca
+      - ../.env/.env.ca
     # ports:
     #   - "7054:7054"
     #   - "17054:17054"
@@ -16,5 +16,5 @@ services:
         - 17054
     command: sh -c 'fabric-ca-server start -b caadmin:caadminpw -d'
     volumes:
-      - ./fabric-ca:/etc/hyperledger/fabric-ca-server
+      - ../fabric-ca:/etc/hyperledger/fabric-ca-server
     network_mode: "host"
