@@ -106,7 +106,7 @@ loooooooooooooooooo    ...    'oooooooooooooooooo;
     curl -sSLO https://raw.githubusercontent.com/hyperledger/fabric/main/scripts/install-fabric.sh && chmod +x install-fabric.sh
     ./install-fabric.sh --fabric-version 3.0.0 binary
     sudo cp bin/* /usr/local/bin/
-    rm -f install-fabric.sh builders bin
+    rm -rf install-fabric.sh builders bin
 
     echo "Initiation starts."
 
