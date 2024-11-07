@@ -442,7 +442,27 @@ joinChannel()
         --client-key orderers/orderer0/tls/server.key
     peer channel join -b "channels/${CHANNEL}/${CHANNEL}.block"
 
-    sleep 5
+    jq ".channels += { \
+		\"${CHANNEL}\": { \
+			\"peers\": { \
+				\"peer0\": {} \
+			}, \
+			\"connection\": { \
+				\"timeout\": { \
+					\"peer\": { \
+						\"endorser\": \"6000\", \
+						\"eventHub\": \"6000\", \
+						\"eventReg\": \"6000\" \
+					} \
+				} \
+			} \
+		} \
+    }" bisce-network-ca.json \
+    > tmp.json
+    mv tmp.json bisce-network-ca.json
+
+    docker compose -f docker-compose/docker-compose-explorer.yaml up -d
+
     export CC_PACKAGE_ID=`peer lifecycle chaincode queryinstalled --output json | jq '.installed_chaincodes[0].package_id'`
     peer lifecycle chaincode approveformyorg \
         -o localhost:7050 \
