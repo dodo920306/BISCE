@@ -103,10 +103,10 @@ loooooooooooooooooo    ...    'oooooooooooooooooo;
         exit -3
     fi
 
-    curl -sSLO https://raw.githubusercontent.com/hyperledger/fabric/main/scripts/install-fabric.sh && chmod +x install-fabric.sh
-    ./install-fabric.sh --fabric-version 3.0.0 binary
-    sudo cp bin/* /usr/local/bin/
-    rm -rf install-fabric.sh builders bin
+    # curl -sSLO https://raw.githubusercontent.com/hyperledger/fabric/main/scripts/install-fabric.sh && chmod +x install-fabric.sh
+    # ./install-fabric.sh --fabric-version 3.0.0 binary
+    # sudo cp bin/* /usr/local/bin/
+    # rm -rf install-fabric.sh builders bin
 
     echo "Initiation starts."
 
@@ -263,6 +263,18 @@ setup()
 
     docker compose -f docker-compose/docker-compose.yaml up -d
 
+    
+    envsubst '${ORG}' \
+        < template/bisce-network-ca.template.json \
+        > bisce-network-ca.json
+
+    peer lifecycle chaincode package bisce.tar.gz \
+        --path $PWD/chaincode \
+        --lang golang \
+        --label bisce_1.0
+    sleep 5
+    peer lifecycle chaincode install bisce.tar.gz
+
     echo "Setup completed."
 }
 
@@ -287,9 +299,6 @@ uninit()
         tlsca/ \
         users/ \
         orderers/ \
-        bin/ \
-        builders/ \
-        config/ \
         peers/ \
         fabric/ \
         channels/
@@ -297,7 +306,7 @@ uninit()
                    -f docker-compose/docker-compose-ca.yaml \
                    -f docker-compose/docker-compose.yaml down -v
     docker volume rm peer0 orderer0
-    sudo rm -f fabric-ca-client-config.yaml bisce-network-ca.json fetchBlock/*.json
+    sudo rm -f config/configtx.yaml fabric-ca-client-config.yaml bisce-network-ca.json bisce.tar.gz fetchBlock/*.json
     echo "Uninit completed"
 }
 
@@ -356,11 +365,6 @@ createChannel()
         --tls \
         --cafile "${PWD}/peers/peer0/tls/ca.crt"
 
-    peer lifecycle chaincode package bisce.tar.gz \
-        --path $PWD/chaincode \
-        --lang golang \
-        --label bisce_1.0
-    peer lifecycle chaincode install /etc/hyperledger/bisce.tar.gz
     export CC_PACKAGE_ID=`peer lifecycle chaincode queryinstalled --output json | jq '.installed_chaincodes[0].package_id'`
     peer lifecycle chaincode approveformyorg \
         -o localhost:7050 \
@@ -370,15 +374,7 @@ createChannel()
         --package-id "${CC_PACKAGE_ID//\"/}" \
         --sequence 1 \
         --tls \
-        --cafile /etc/hyperledger/peers/peer0/tls/ca.crt
-    peer lifecycle chaincode checkcommitreadiness \
-        --channelID "${CHANNEL}" \
-        --name bisce \
-        --version 1.0 \
-        --sequence 1 \
-        --tls \
-        --cafile /etc/hyperledger/peers/peer0/tls/ca.crt \
-        --output json
+        --cafile "${PWD}/peers/peer0/tls/ca.crt"
     peer lifecycle chaincode commit \
         -o localhost:7050 \
         --channelID "${CHANNEL}" \
@@ -386,22 +382,38 @@ createChannel()
         --version 1.0 \
         --sequence 1 \
         --tls \
-        --cafile /etc/hyperledger/peers/peer0/tls/ca.crt \
+        --cafile "${PWD}/peers/peer0/tls/ca.crt" \
         --peerAddresses localhost:7051 \
-        --tlsRootCertFiles /etc/hyperledger/peers/peer0/tls/ca.crt
+        --tlsRootCertFiles "${PWD}/peers/peer0/tls/ca.crt"
     peer chaincode invoke \
         -o localhost:7050 \
         --tls \
-        --cafile /etc/hyperledger/peers/peer0/tls/ca.crt \
+        --cafile "${PWD}/peers/peer0/tls/ca.crt" \
         --peerAddresses localhost:7051 \
-        --tlsRootCertFiles /etc/hyperledger/peers/peer0/tls/ca.crt \
+        --tlsRootCertFiles "${PWD}/peers/peer0/tls/ca.crt" \
         -C "${CHANNEL}" \
         -n bisce \
         -c '{"function":"Initialize","Args":["Carbon Token", "CT", "2"]}'
 
-    envsubst '${ORG} ${CHANNEL}' \
-        < template/bisce-network-ca.template.json \
-        > bisce-network-ca.json
+    jq ".channels += { \
+		\"${CHANNEL}\": { \
+			\"peers\": { \
+				\"peer0\": {} \
+			}, \
+			\"connection\": { \
+				\"timeout\": { \
+					\"peer\": { \
+						\"endorser\": \"6000\", \
+						\"eventHub\": \"6000\", \
+						\"eventReg\": \"6000\" \
+					} \
+				} \
+			} \
+		} \
+    }" bisce-network-ca.json \
+    > tmp.json
+    mv tmp.json bisce-network-ca.json
+
     docker compose -f docker-compose/docker-compose-explorer.yaml up -d
     echo "Creation of the channel completed."
 }
@@ -430,11 +442,6 @@ joinChannel()
         --client-key orderers/orderer0/tls/server.key
     peer channel join -b "channels/${CHANNEL}/${CHANNEL}.block"
 
-    peer lifecycle chaincode package bisce.tar.gz \
-        --path $PWD/chaincode \
-        --lang golang \
-        --label bisce_1.0
-    peer lifecycle chaincode install /etc/hyperledger/bisce.tar.gz
     export CC_PACKAGE_ID=`peer lifecycle chaincode queryinstalled --output json | jq '.installed_chaincodes[0].package_id'`
     peer lifecycle chaincode approveformyorg \
         -o localhost:7050 \
@@ -444,7 +451,7 @@ joinChannel()
         --package-id "${CC_PACKAGE_ID//\"/}" \
         --sequence 1 \
         --tls \
-        --cafile /etc/hyperledger/peers/peer0/tls/ca.crt
+        --cafile "${PWD}/peers/peer0/tls/ca.crt"
     echo "Channel ${CHANNEL} joining completed."
 }
 
@@ -526,8 +533,8 @@ generateProposal()
             \"host\": \"${HOST}\",
             \"port\": 7050,
             \"server_tls_cert\": \"${CERT}\"
-        }]" - \
-        "channels/${CHANNEL}/orgRequests/$1/$1.json" \
+        }]" \
+        - "channels/${CHANNEL}/orgRequests/$1/$1.json" \
         > modified_config.json
     configtxlator proto_encode \
         --input config.json \

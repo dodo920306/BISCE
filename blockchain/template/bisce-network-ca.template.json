@@ -22,22 +22,7 @@
 			}
 		}
 	},
-	"channels": {
-		"${CHANNEL}": {
-			"peers": {
-				"peer0": {}
-			},
-			"connection": {
-				"timeout": {
-					"peer": {
-						"endorser": "6000",
-						"eventHub": "6000",
-						"eventReg": "6000"
-					}
-				}
-			}
-		}
-	},
+	"channels": {},
 	"organizations": {
 		"${ORG}MSP": {
 			"mspid": "${ORG}MSP",
