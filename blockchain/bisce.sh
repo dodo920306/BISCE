@@ -442,6 +442,7 @@ joinChannel()
         --client-key orderers/orderer0/tls/server.key
     peer channel join -b "channels/${CHANNEL}/${CHANNEL}.block"
 
+    sleep 5
     export CC_PACKAGE_ID=`peer lifecycle chaincode queryinstalled --output json | jq '.installed_chaincodes[0].package_id'`
     peer lifecycle chaincode approveformyorg \
         -o localhost:7050 \
