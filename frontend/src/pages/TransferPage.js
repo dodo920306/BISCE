@@ -65,7 +65,7 @@ const TransferPage = () => {
             setBalanceOf(response.data.result);
         } 
         catch (error) {
-            alert("error: ", error);
+            alert(`error: ${error}`);
         }
     };
 
@@ -79,7 +79,7 @@ const TransferPage = () => {
             setTransferStatus(response.data.result);
         } 
         catch (error) {
-            alert("error: ", error);
+            alert(`error: ${error}`);
         }
     };
 
@@ -94,7 +94,7 @@ const TransferPage = () => {
             setApproveStatus(response.data.result);
         } 
         catch (error) {
-            alert("error: ", error);
+            alert(`error: ${error}`);
         }
     }
 
@@ -108,7 +108,7 @@ const TransferPage = () => {
             setAllowanceStatus(response.data.result);
         } 
         catch (error) {
-            alert("error: ", error);
+            alert(`error: ${error}`);
         }
     }
 
@@ -122,7 +122,7 @@ const TransferPage = () => {
             setTfStatus(response.data.result);
         } 
         catch (error) {
-            alert("error: ", error);
+            alert(`error: ${error}`);
         }
     }
 
@@ -136,7 +136,7 @@ const TransferPage = () => {
             setUsedBalanceOf(response.data.result);
         } 
         catch (error) {
-            alert("error: ", error);
+            alert(`error: ${error}`);
         }
     };
 
@@ -150,7 +150,7 @@ const TransferPage = () => {
             setUseStatus(response.data.result);
         } 
         catch (error) {
-            alert("error: ", error);
+            alert(`error: ${error}`);
         }
     };
 
@@ -164,7 +164,7 @@ const TransferPage = () => {
             setUseFromStatus(response.data.result);
         } 
         catch (error) {
-            alert("error: ", error);
+            alert(`error: ${error}`);
         }
     }
 
@@ -178,7 +178,7 @@ const TransferPage = () => {
             setMintStatus(response.data.result);
         } 
         catch (error) {
-            alert("error: ", error);
+            alert(`error: ${error}`);
         }
     };
 
@@ -192,7 +192,7 @@ const TransferPage = () => {
             setBurnStatus(response.data.result);
         } 
         catch (error) {
-            alert("error: ", error);
+            alert(`error: ${error}`);
         }
     };
 

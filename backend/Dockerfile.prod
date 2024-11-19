@@ -1,0 +1,37 @@
+FROM python:3.13-alpine AS builder
+
+WORKDIR /usr/src/app
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+RUN pip install --upgrade pip
+COPY ./requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir wheels -r requirements.txt
+
+FROM python:3.13-alpine
+
+RUN mkdir -p /home/bisce
+RUN addgroup -S bisce && adduser -S -G bisce bisce
+
+ENV HOME=/home/bisce
+ENV APP_HOME=/home/bisce/website
+RUN mkdir -p $APP_HOME/staticfiles
+WORKDIR $APP_HOME
+
+RUN apk upgrade --no-cache
+COPY --from=builder /usr/src/app/wheels /wheels
+COPY --from=builder /usr/src/app/requirements.txt .
+RUN pip install --upgrade pip
+RUN pip install --no-cache /wheels/*
+
+COPY ./entrypoint.prod.sh .
+RUN chmod +x entrypoint.prod.sh
+
+COPY . .
+
+RUN chown -R bisce:bisce .
+
+USER bisce
+
+ENTRYPOINT ["/home/bisce/website/entrypoint.prod.sh"]

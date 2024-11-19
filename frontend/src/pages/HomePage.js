@@ -32,7 +32,7 @@ const HomePage = () => {
             });
             setBalance(response.data.result);
         } catch (error) {
-            alert("error: ", error);
+            alert(`error: ${error}`);
         }
     };
 
@@ -45,7 +45,7 @@ const HomePage = () => {
             });
             setUsedBalance(response.data.result);
         } catch (error) {
-            alert("error: ", error);
+            alert(`error: ${error}`);
         }
     };
 
@@ -59,7 +59,7 @@ const HomePage = () => {
             setClientID(response.data.result);
             setCroppedID(sliceID(response.data.result));
         } catch (error) {
-            alert("error: ", error);
+            alert(`error: ${error}`);
         }
     };
 
@@ -72,7 +72,7 @@ const HomePage = () => {
             });
             setTotalSupply(response.data.result);
         } catch (error) {
-            alert("error: ", error);
+            alert(`error: ${error}`);
         }
     };
 
@@ -100,7 +100,7 @@ const HomePage = () => {
                         Value={value.Payload.value}/>;
                 }));
         } catch (error) {
-            alert("error: ", error);
+            alert(`error: ${error}`);
         }
         setLoading(false);
     };
