@@ -23,6 +23,10 @@
     justify-content: center;
     margin: 0px 0px;
 }
+#navLogo a {
+    display: flex;
+    align-items: center;
+}
 #navLogo img {
     height: 65%;
     margin: 0px 8px;
@@ -62,8 +66,10 @@
     font-size: 16px;
     border: none;
     margin: 0px 8px;
-    /* border: 2px solid #E7e7e7;
-    border-radius: 20px; */
+    /**
+     * border: 2px solid #E7e7e7;
+     * border-radius: 20px;
+     */
     background-color: transparent;
     font-family: 'open sans';
 }

@@ -1,0 +1,28 @@
+volumes:
+    postgres_data:
+
+services:
+  website:
+    build: ./website
+    container_name: bisce_website
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./website/:/usr/src/app/
+    expose:
+      - 8000
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - db
+    network_mode: "host"
+  db:
+    image: postgres:17-alpine
+    container_name: bisce_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=bisce
+      - POSTGRES_PASSWORD=P@ssw0rd
+      - POSTGRES_DB=bisce_dev
+    network_mode: "host"
+    command: -p 6432

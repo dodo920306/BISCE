@@ -1,0 +1,25 @@
+Organizations:
+  - &bisce1
+    Name: bisce1
+    ID: bisce1MSP
+    MSPDir: bisce1/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: '"OR(bisce1MSP.admin, bisce1MSP.peer, bisce1MSP.client, bisce1MSP.member)"'
+      Writers:
+        Type: Signature
+        Rule: '"OR(bisce1MSP.admin, bisce1MSP.peer, bisce1MSP.client, bisce1MSP.member)"'
+      Admins:
+        Type: Signature
+        Rule: '"OR(bisce1MSP.admin, bisce1MSP.peer)"'
+      Endorsement:
+        Type: '"OR(bisce1MSP.peer)"'
+    OrdererEndpoints: bisce1:7050
+Capabilities:
+  Channel: &ChannelCapabilities
+    v2.0: true
+  Orderer: &OrdererCapabilities
+    v2.0: true
+  Application: &ApplicationCapabilities
+    v2.5: true

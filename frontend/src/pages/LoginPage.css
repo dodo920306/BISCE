@@ -1,13 +1,12 @@
 .loginContainer {
-    height: 100%;
+    height: auto;
     background-color: white;
-    padding: 50px 100px;
+    padding: 80px 100px;
 }
 .loginContainer form {
     height: min-content;
 }
 .formContainer {
-    height: 470px;
     width: 300px;
     margin: auto;
     padding: 30px;

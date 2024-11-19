@@ -1,25 +1,25 @@
 import React, { useState } from "react";
-import './TransactionItem.css'
+import './TransactionItem.css';
+
 const TransactionItem = (props) => {
 
-    const txID = props.TransactionID
-    const txEvent = props.EventName
-    const txFrom = props.From
-    const txTo = props.To
-    const txBlock = props.BlockNumber
-    const txValue = props.Value
-    const txTime = props.Time
-
+    const txID = props.TransactionID;
+    const txEvent = props.EventName;
+    const txFrom = props.From;
+    const txTo = props.To;
+    const txBlock = props.BlockNumber;
+    const txValue = props.Value;
+    const txTime = props.Time;
 
     const sliceTx = (input) => {
         return input.length > 10 ? `${input.substring(0, 5)}...${input.substring(input.length-5, input.length)}` : input;
     }
 
-    const sliceID = sliceTx(txID)
-    const sliceFrom = sliceTx(txFrom)
-    const sliceTo = sliceTx(txTo)
+    const sliceID = sliceTx(txID);
+    const sliceFrom = sliceTx(txFrom);
+    const sliceTo = sliceTx(txTo);
 
-    const [details, setDetails] = useState(false)
+    const [details, setDetails] = useState(false);
 
     return (
         <div className="txItemContainer" >
@@ -45,6 +45,7 @@ const TransactionItem = (props) => {
             }
         </div>
     );
+
 };
 
 export default TransactionItem;

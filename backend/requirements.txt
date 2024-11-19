@@ -1,11 +1,6 @@
-asgiref
 Django
+psycopg2-binary
+gunicorn
 django-cors-headers
 djangorestframework
 djangorestframework-simplejwt
-PyJWT
-python-dotenv
-pytz
-rest-framework-simplejwt
-sqlparse
-django-allauth
